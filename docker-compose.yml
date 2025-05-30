@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Banco de Dados PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: cardapio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: food
+      POSTGRES_USER: cardapio_user
+      POSTGRES_PASSWORD: cardapio123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - cardapio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cardapio_user -d food"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Backend Spring Boot
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cardapio-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/food
+      SPRING_DATASOURCE_USERNAME: cardapio_user
+      SPRING_DATASOURCE_PASSWORD: cardapio123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: true
+    ports:
+      - "8080:8080"
+    networks:
+      - cardapio-network
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/food"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Frontend React + Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cardapio-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - cardapio-network
+    volumes:
+      - frontend_logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# Networks
+networks:
+  cardapio-network:
+    driver: bridge
+    name: cardapio-network
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+    name: cardapio-postgres-data
+  backend_logs:
+    driver: local
+    name: cardapio-backend-logs
+  frontend_logs:
+    driver: local
+    name: cardapio-frontend-logs

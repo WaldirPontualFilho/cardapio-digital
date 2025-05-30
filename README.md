@@ -12,6 +12,12 @@ Uma aplicação fullstack moderna para gerenciamento de cardápio digital, desen
 
 </div>
 
+## 📁 Documentação por Componente
+
+- 🚀 **[Backend API](./backend/README.md)** - Spring Boot, PostgreSQL, Docker
+- 🎨 **[Frontend Web](./frontend/README.md)** - React, TypeScript, Vite
+- 📋 **[Metodologia](./DESENVOLVIMENTO.md)** - Scrum, sprints, retrospectivas
+
 ## 🚀 Quick Start
 
 ```bash

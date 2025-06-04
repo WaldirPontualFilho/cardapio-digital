@@ -19,7 +19,7 @@ COPY . .
 RUN chmod +x mvnw
 
 # Mudar ownership para usuário spring
-RUN chown -R spring:spring /app
+RUN chown -R spring:spring /app && chmod -R u+rwX .mvn
 
 # Usar usuário não-root para build
 USER spring
